@@ -3,11 +3,11 @@ import random
 
 # Tile colors
 COLOR_RED = 0
-COLOR_ORANGE = 1
+COLOR_GREEN = 1
 COLOR_YELLOW = 2
-COLOR_GREEN = 3
-COLOR_BLUE = 4
-COLOR_PURPLE = 5
+COLOR_BLUE = 3
+COLOR_MAGENTA = 4
+COLOR_CYAN = 5
 
 # Edge of the play space
 MIN_X = 0
@@ -15,21 +15,20 @@ MAX_X = 79
 MIN_Y = 0
 MAX_Y = 79
 
-
 def color_string(color):
     """ Translate a color to a string """
     if color == COLOR_RED:
         return "red"
-    if color == COLOR_ORANGE:
-        return "orange"
-    if color == COLOR_YELLOW:
-        return "yellow"
     if color == COLOR_GREEN:
         return "green"
+    if color == COLOR_YELLOW:
+        return "yellow"
     if color == COLOR_BLUE:
         return "blue"
-    if color == COLOR_PURPLE:
-        return "purple"
+    if color == COLOR_MAGENTA:
+        return "magenta"
+    if color == COLOR_CYAN:
+        return "cyan"
 
 
 def tile_string(tile):
@@ -152,6 +151,16 @@ def score_play(newtiles, tiles, keynumber):
 def get_key_number():
     """ Determine a random key number """
     return random.randrange(3, 6)
+
+
+def generate_tiles():
+    """ Generates the tiles to start the game """
+    tiles = []
+    for num in xrange(1, 9):
+        for color in xrange(0, 6):
+            tiles.append((num, color))
+            tiles.append((num, color))
+    return tiles
 
 
 def draw_tile(tiles):
