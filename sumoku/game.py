@@ -9,6 +9,12 @@ COLOR_GREEN = 3
 COLOR_BLUE = 4
 COLOR_PURPLE = 5
 
+# Edge of the play space
+MIN_X = 0
+MAX_X = 79
+MIN_Y = 0
+MAX_Y = 79
+
 
 def color_string(color):
     """ Translate a color to a string """
@@ -26,13 +32,27 @@ def color_string(color):
         return "purple"
 
 
+def tile_string(tile):
+    """ Translate a tile to string """
+    return '{} {}'.format(color_string(tile[0]), tile[1])
+
+
+def played_tile_string(tile):
+    """ Translate a played tile to a string """
+    return '{} at {},{}'.format(tile_string(tile), tile[2], tile[3])
+
+
 class InvalidPlayException(Exception):
     """ Exception thrown for an invalid play """
     pass
 
 
-def validate_play(tiles, keynumber):
-    """ Validates a row or column (collection of tiles) """
+def score_tiles(tiles, keynumber):
+    """ Validates and scores a row or column (collection of tiles) """
+    # Just ignore length 1 or 0
+    if len(tiles) < 2:
+        return 0
+
     # Check that sum is divisible by the key number
     tilesum = sum([tile[0] for tile in tiles])
     if tilesum % keynumber != 0:
@@ -47,7 +67,86 @@ def validate_play(tiles, keynumber):
             raise InvalidPlayException('Color {} used more than once'
                                        .format(color_string(color)))
         colors.append(color)
-    return True
+    return tilesum
+
+
+def find_tile(x, y, tiles):
+    """ Return the tile at position x, y """
+    for tile in tiles:
+        if tile[2] == x and tile[3] == y:
+            return tile
+    raise InvalidPlayException('No tile found at {},{}'.format(x, y))
+
+
+def complete_line(tile, row, tiles):
+    """ Complete the line of tiles """
+    line = [tile]
+
+    # Search before the start until we can't find any more
+    try:
+        if row:
+            for x in xrange(tile[2] - 1, MIN_X - 1, -1):
+                line.append(find_tile(x, tile[3], tiles))
+        else:
+            for y in xrange(tile[3] - 1, MIN_Y - 1, -1):
+                line.append(find_tile(tile[2], y, tiles))
+    except InvalidPlayException:
+        pass
+
+    # Search after the end until we can't find any more
+    try:
+        if row:
+            for x in xrange(tile[2] + 1, MAX_X + 1):
+                line.append(find_tile(x, tile[3], tiles))
+        else:
+            for y in xrange(tile[3] + 1, MAX_Y + 1):
+                line.append(find_tile(tile[2], y, tiles))
+    except InvalidPlayException:
+        pass
+
+    return line
+
+
+def score_play(newtiles, tiles, keynumber):
+    """ Validates and scores a new play """
+    # Special case for a first play of one tile
+    if len(newtiles) == 1 and len(tiles) == 0:
+        if newtiles[0][0] % keynumber == 0:
+            return newtiles[0][0]
+        else:
+            raise InvalidPlayException('Sum {} not divisible by {}'
+                                       .format(newtiles[0][0], keynumber))
+
+    # Played tiles are tuples (number, color, x, y)
+    # Sort the tiles to make things easier
+    newtiles.sort()
+
+    # Make sure the new tiles are all in the same row or column
+    row = newtiles[0][3]
+    col = newtiles[0][2]
+    notrow = False
+    notcol = False
+    for tile in newtiles[1:]:
+        if tile[3] != row:
+            notrow = True
+        if tile[2] != col:
+            notcol = True
+        if notrow and notcol:
+            raise InvalidPlayException('Tiles not in a single row or column')
+
+    alltiles = list(newtiles)
+    alltiles.extend(tiles)
+
+    # Score the major axis once, and minor axis for each new tile
+    mainline = complete_line(newtiles[0], notcol, alltiles)
+    if newtiles[-1] not in mainline:
+        raise InvalidPlayException('Gaps in main line')
+
+    score = score_tiles(mainline, keynumber)
+    for tile in newtiles:
+        score = score + score_tiles(complete_line(tile, not notcol, alltiles),
+                                    keynumber)
+    return score
 
 
 def get_key_number():
