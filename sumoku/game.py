@@ -11,9 +11,9 @@ COLOR_CYAN = 5
 
 # Edge of the play space
 MIN_X = 0
-MAX_X = 79
+MAX_X = 51 
 MIN_Y = 0
-MAX_Y = 79
+MAX_Y = 19 
 
 def color_string(color):
     """ Translate a color to a string """

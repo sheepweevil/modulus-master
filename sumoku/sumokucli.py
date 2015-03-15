@@ -37,6 +37,40 @@ def draw_hands(hands, tiles, hand_size):
     for hand in hands:
         while len(hand) < hand_size and len(tiles) > 0:
             hand.append(sumoku.game.draw_tile(tiles))
+        hand.sort()
+
+
+def print_game(args, hands, scores, tiles, played_tiles):
+    print 'Key number: {} Tiles remaining: {}'.format(args.key_number, len(tiles))
+    for player in xrange(args.players):
+        sys.stdout.write("Player {}'s Score: {:4} Hand: ".format(player + 1, scores[player]))
+        for tile in hands[player]:
+            output_tile(tile)
+        print
+
+    print '   abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    for y in xrange(sumoku.game.MIN_Y, sumoku.game.MAX_Y + 1):
+        sys.stdout.write('{:2} '.format(y + 1))
+        for x in xrange(sumoku.game.MIN_X, sumoku.game.MAX_X + 1):
+            try:
+                output_tile(sumoku.game.find_tile(x, y, played_tiles))
+            except sumoku.game.InvalidPlayException:
+                sys.stdout.write('-')
+        print
+
+
+def command_help():
+    print 'help,?                   Print this help message'
+    print 'submit                   Submit the current play'
+    print 'flip <tile>              Flip a tile between 6 and 9'
+    print 'place <tile> <col> <row> Place a tile on the board'
+    print 'remove <col> <row>       Remove a tile from the board'
+
+
+def handle_command(player):
+    command = raw_input('Player {} enter command (? for help): '
+                        .format(player))
+    command_args = command.split()
 
 
 if __name__ == "__main__":
@@ -44,11 +78,9 @@ if __name__ == "__main__":
     tiles = sumoku.game.generate_tiles()
     hands = [[] for _ in xrange(args.players)]
     draw_hands(hands, tiles, args.hand_size)
+    scores = [0 for _ in xrange(args.players)]
+    played_tiles = []
 
-    # Print game state
-    print 'Key number: {}'.format(args.key_number)
-    for player in xrange(args.players):
-        sys.stdout.write("Player {}'s hand: ".format(player + 1))
-        for tile in hands[player]:
-            output_tile(tile)
-        print
+    print_game(args, hands, scores, tiles, played_tiles)
+    handle_command(0)
+    command_help()
