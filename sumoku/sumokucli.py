@@ -10,9 +10,11 @@ class IllegalCommandException(Exception):
     pass
 
 
-def output_tile(tile):
+def output_tile(tile, highlight):
     """ Print a tile in color """
-    sys.stdout.write('\x1b[{};1m{}\x1b[0m'.format(31 + tile[1], tile[0]))
+    sys.stdout.write('\x1b[{};{}1m{}\x1b[0m'.format(31 + tile[1],
+                                                    '47;' if highlight else '',
+                                                    tile[0]))
 
 
 def parse_args():
@@ -45,7 +47,8 @@ def draw_hands(hands, tiles, hand_size):
         hand.sort()
 
 
-def print_game(args, hands, scores, tiles, played_tiles):
+def print_game(args, hands, scores, tiles, played_tiles, pending_tiles,
+               active_player):
     """ Print the game state """
 
     print '   abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -53,20 +56,31 @@ def print_game(args, hands, scores, tiles, played_tiles):
         sys.stdout.write('{:2} '.format(y + 1))
         for x in xrange(sumoku.game.MIN_X, sumoku.game.MAX_X + 1):
             try:
-                output_tile(sumoku.game.find_tile(x, y, played_tiles))
+                output_tile(sumoku.game.find_tile(x, y, played_tiles), False)
             except sumoku.game.InvalidPlayException:
-                sys.stdout.write('-')
+                try:
+                    output_tile(sumoku.game.find_tile(x, y, pending_tiles),
+                                True)
+                except sumoku.game.InvalidPlayException:
+                    sys.stdout.write('-')
 
         if y == 0:
             print ' Key number: {}'.format(args.key_number)
         elif y == 1:
             print ' Tiles remaining: {}'.format(len(tiles))
-        elif y - 3 >= 0 and y - 3 < args.players:
-            player = y - 3
-            sys.stdout.write(' P{} Score: {:04} Hand: '
+        elif y == 3:
+            print ' Player Score Hand'
+        elif y == 4:
+            print '              12345678'
+        elif y - 5 >= 0 and y - 5 < args.players:
+            player = y - 5
+            sys.stdout.write(' ')
+            if player == active_player:
+                sys.stdout.write('\x1b[47m')
+            sys.stdout.write('{:6} {:05} '
                              .format(player + 1, scores[player]))
             for tile in hands[player]:
-                output_tile(tile)
+                output_tile(tile, player == active_player)
             print
         else:
             print
@@ -87,7 +101,7 @@ def parse_tile(tilestr, hand):
     if tile < 0 or tile >= len(hand):
         raise IllegalCommandException('Tile must be between {} and {}'
                                       .format(1, len(hand)))
-    return hand[tile]
+    return tile
 
 
 def parse_col(colstr):
@@ -128,13 +142,19 @@ def handle_command(player, hand):
             raise IllegalCommandException('Flip command takes one argument')
 
         tile = parse_tile(command[1], hand)
+        if hand[tile][0] == 6:
+            hand[tile] = (9, hand[tile][1])
+        elif hand[tile][0] == 9:
+            hand[tile] = (6, hand[tile][1])
+        else:
+            raise IllegalCommandException('Can only flip 6 or 9 tiles')
     elif command[0] == 'place':
         if len(command) != 4:
             raise IllegalCommandException('Place command takes 3 arguments')
 
         tile = parse_tile(command[1], hand)
-        row = parse_row(command[2])
-        col = parse_col(command[3])
+        col = parse_col(command[2])
+        row = parse_row(command[3])
     elif command[0] == 'remove':
         if len(command) != 3:
             raise IllegalCommandException('Remove command takes 2 arguments')
@@ -154,11 +174,19 @@ def play_sumoku():
     draw_hands(hands, tiles, args.hand_size)
     scores = [0 for _ in xrange(args.players)]
     played_tiles = []
+    pending_tiles = []
+    player = 0
 
-    print_game(args, hands, scores, tiles, played_tiles)
-    turn_done = False
-    while not turn_done:
-        turn_done = handle_command(0, hands[0])
+    print_game(args, hands, scores, tiles, played_tiles, pending_tiles, player)
+    while True:
+        try:
+            turn_done = handle_command(player, hands[player])
+            if turn_done:
+                player = (player + 1) % args.players
+            print_game(args, hands, scores, tiles, played_tiles,
+                       pending_tiles, player)
+        except IllegalCommandException, e:
+            print 'Error: {}'.format(e.message)
 
 
 if __name__ == "__main__":
