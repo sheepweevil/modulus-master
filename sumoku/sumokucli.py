@@ -2,19 +2,12 @@
 """ A CLI interface to play sumoku """
 import argparse
 import sumoku.game
-import sys
+import sumoku.gamestate
 
 
 class IllegalCommandException(Exception):
     """ Exception raised for badly formatted commands """
     pass
-
-
-def output_tile(tile, highlight):
-    """ Print a tile in color """
-    sys.stdout.write('\x1b[{};{}1m{}\x1b[0m'.format(31 + tile[1],
-                                                    '47;' if highlight else '',
-                                                    tile[0]))
 
 
 def parse_args():
@@ -37,53 +30,6 @@ def parse_args():
         args.key_number = int(args.key_number)
 
     return args
-
-
-def draw_hands(hands, tiles, hand_size):
-    """ Draw hands for each player """
-    for hand in hands:
-        while len(hand) < hand_size and len(tiles) > 0:
-            hand.append(sumoku.game.draw_tile(tiles))
-        hand.sort()
-
-
-def print_game(args, hands, scores, tiles, played_tiles, pending_tiles,
-               active_player):
-    """ Print the game state """
-
-    print '   abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    for y in xrange(sumoku.game.MIN_Y, sumoku.game.MAX_Y + 1):
-        sys.stdout.write('{:2} '.format(y + 1))
-        for x in xrange(sumoku.game.MIN_X, sumoku.game.MAX_X + 1):
-            try:
-                output_tile(sumoku.game.find_tile(x, y, played_tiles), False)
-            except sumoku.game.InvalidPlayException:
-                try:
-                    output_tile(sumoku.game.find_tile(x, y, pending_tiles),
-                                True)
-                except sumoku.game.InvalidPlayException:
-                    sys.stdout.write('-')
-
-        if y == 0:
-            print ' Key number: {}'.format(args.key_number)
-        elif y == 1:
-            print ' Tiles remaining: {}'.format(len(tiles))
-        elif y == 3:
-            print ' Player Score Hand'
-        elif y == 4:
-            print '              12345678'
-        elif y - 5 >= 0 and y - 5 < args.players:
-            player = y - 5
-            sys.stdout.write(' ')
-            if player == active_player:
-                sys.stdout.write('\x1b[47m')
-            sys.stdout.write('{:6} {:05} '
-                             .format(player + 1, scores[player]))
-            for tile in hands[player]:
-                output_tile(tile, player == active_player)
-            print
-        else:
-            print
 
 
 def command_help():
@@ -110,10 +56,10 @@ def parse_col(colstr):
         raise IllegalCommandException('Column must be a-zA-Z')
 
     colnum = ord(colstr)
-    if colnum > ord('a'):
-        colnum = colnum - ord('a') + 26
+    if colnum >= ord('a'):
+        colnum = colnum - ord('a')
     else:
-        colnum = colnum - ord('A')
+        colnum = colnum - ord('A') + 26
     if colnum < 0 or colnum > sumoku.game.MAX_X:
         raise IllegalCommandException('Column must be a-zA-Z')
     return colnum
@@ -128,26 +74,22 @@ def parse_row(rowstr):
     return row
 
 
-def handle_command(player, hand):
+def handle_command(state):
     """ Get a command from the user and perform appropriate action """
     command = raw_input('Player {} enter command (? for help): '
-                        .format(player + 1)).split()
+                        .format(state.player + 1)).split()
+    hand = state.cur_hand()
 
     if len(command) == 0:
         command_help()
     elif command[0] == 'submit':
-        return True
+        state.submit_play()
     elif command[0] == 'flip':
         if len(command) != 2:
             raise IllegalCommandException('Flip command takes one argument')
 
         tile = parse_tile(command[1], hand)
-        if hand[tile][0] == 6:
-            hand[tile] = (9, hand[tile][1])
-        elif hand[tile][0] == 9:
-            hand[tile] = (6, hand[tile][1])
-        else:
-            raise IllegalCommandException('Can only flip 6 or 9 tiles')
+        state.flip_tile(tile)
     elif command[0] == 'place':
         if len(command) != 4:
             raise IllegalCommandException('Place command takes 3 arguments')
@@ -155,12 +97,14 @@ def handle_command(player, hand):
         tile = parse_tile(command[1], hand)
         col = parse_col(command[2])
         row = parse_row(command[3])
+        state.place_tile(tile, col, row)
     elif command[0] == 'remove':
         if len(command) != 3:
             raise IllegalCommandException('Remove command takes 2 arguments')
 
-        row = parse_row(command[1])
-        col = parse_col(command[2])
+        col = parse_col(command[1])
+        row = parse_row(command[2])
+        state.remove_tile(col, row)
     else:
         command_help()
     return False
@@ -169,24 +113,16 @@ def handle_command(player, hand):
 def play_sumoku():
     """ Play a game of sumoku """
     args = parse_args()
-    tiles = sumoku.game.generate_tiles()
-    hands = [[] for _ in xrange(args.players)]
-    draw_hands(hands, tiles, args.hand_size)
-    scores = [0 for _ in xrange(args.players)]
-    played_tiles = []
-    pending_tiles = []
-    player = 0
+    state = sumoku.gamestate.GameState(args.players, args.hand_size,
+                                       args.key_number)
 
-    print_game(args, hands, scores, tiles, played_tiles, pending_tiles, player)
+    state.print_game()
     while True:
         try:
-            turn_done = handle_command(player, hands[player])
-            if turn_done:
-                player = (player + 1) % args.players
-            print_game(args, hands, scores, tiles, played_tiles,
-                       pending_tiles, player)
-        except IllegalCommandException, e:
-            print 'Error: {}'.format(e.message)
+            handle_command(state)
+            state.print_game()
+        except IllegalCommandException, err:
+            print 'Error: {}'.format(err.message)
 
 
 if __name__ == "__main__":
