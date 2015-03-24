@@ -3,6 +3,15 @@
 Modulus Master is an implementation of the rules of Sumoku (TM)
 by Blue Orange Games.
 
+## Rules
+
+The objective is to score the most number of points by placing
+new tiles in a single row or column such that the sum of each
+line is divisible by the key number. In addition, colors cannot
+be repeated within a line (but numbers can).
+
+## Playing
+
 To run the command line client, use a terminal at least 80
 characters wide and 24 lines tall, which supports ANSI
 escape codes. Set your `PYTHONPATH` to include the project
