@@ -11,9 +11,9 @@ COLOR_CYAN = 5
 
 # Edge of the play space
 MIN_X = 0
-MAX_X = 51 
+MAX_X = 51
 MIN_Y = 0
-MAX_Y = 19 
+MAX_Y = 19
 
 def color_string(color):
     """ Translate a color to a string """
@@ -108,6 +108,10 @@ def complete_line(tile, row, tiles):
 
 def score_play(newtiles, tiles, keynumber):
     """ Validates and scores a new play """
+    # Special case for skipping turn
+    if len(newtiles) == 0:
+        return 0
+
     # Special case for a first play of one tile
     if len(newtiles) == 1 and len(tiles) == 0:
         if newtiles[0][0] % keynumber == 0:
