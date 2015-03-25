@@ -110,12 +110,12 @@ def score_play(newtiles, tiles, keynumber):
     """ Validates and scores a new play """
     # Special case for skipping turn
     if len(newtiles) == 0:
-        return 0
+        return (0, False)
 
     # Special case for a first play of one tile
     if len(newtiles) == 1 and len(tiles) == 0:
         if newtiles[0][0] % keynumber == 0:
-            return newtiles[0][0]
+            return (newtiles[0][0], False)
         else:
             raise InvalidPlayException('Sum {} not divisible by {}'
                                        .format(newtiles[0][0], keynumber))
@@ -141,15 +141,20 @@ def score_play(newtiles, tiles, keynumber):
     alltiles.extend(tiles)
 
     # Score the major axis once, and minor axis for each new tile
+    completed = False
     mainline = complete_line(newtiles[0], notcol, alltiles)
     if newtiles[-1] not in mainline:
         raise InvalidPlayException('Gaps in main line')
+    if len(mainline) == 6:
+        completed = True
 
     score = score_tiles(mainline, keynumber)
     for tile in newtiles:
-        score = score + score_tiles(complete_line(tile, not notcol, alltiles),
-                                    keynumber)
-    return score
+        line = complete_line(tile, not notcol, alltiles)
+        if len(line) == 6:
+            completed = True
+        score = score + score_tiles(line, keynumber)
+    return (score, completed)
 
 
 def get_key_number():

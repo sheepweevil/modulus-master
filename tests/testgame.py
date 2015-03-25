@@ -79,14 +79,21 @@ class TestGame(unittest.TestCase):
                           [(1, 0, 0, 0), (1, 0, 0, 2)], [], 3)
 
         # Now some valid plays
-        self.assertEqual(game.score_play([(3, 0, 0, 0)], [], 3), 3)
+        self.assertEqual(game.score_play([(3, 0, 0, 0)], [], 3), (3, False))
         origin = (1, 0, 0, 0)
         xtile = (2, 1, 1, 0)
         ytile = (2, 1, 0, 1)
-        self.assertEqual(game.score_play([origin, xtile], [], 3), 3)
-        self.assertEqual(game.score_play([origin, ytile], [], 3), 3)
-        self.assertEqual(game.score_play([origin], [xtile], 3), 3)
-        self.assertEqual(game.score_play([origin], [ytile], 3), 3)
-        self.assertEqual(game.score_play([origin, xtile], [ytile], 3), 6)
-        self.assertEqual(game.score_play([origin, ytile], [xtile], 3), 6)
-        self.assertEqual(game.score_play([origin], [xtile, ytile], 3), 6)
+        self.assertEqual(game.score_play([origin, xtile], [], 3), (3, False))
+        self.assertEqual(game.score_play([origin, ytile], [], 3), (3, False))
+        self.assertEqual(game.score_play([origin], [xtile], 3), (3, False))
+        self.assertEqual(game.score_play([origin], [ytile], 3), (3, False))
+        self.assertEqual(game.score_play([origin, xtile], [ytile], 3),
+                         (6, False))
+        self.assertEqual(game.score_play([origin, ytile], [xtile], 3),
+                         (6, False))
+        self.assertEqual(game.score_play([origin], [xtile, ytile], 3),
+                         (6, False))
+        self.assertEqual(game.score_play([(1, 0, 0, 0), (1, 1, 0, 1),
+                                          (1, 2, 0, 2), (1, 3, 0, 3),
+                                          (1, 4, 0, 4), (1, 5, 0, 5)], [], 3),
+                         (6, True))

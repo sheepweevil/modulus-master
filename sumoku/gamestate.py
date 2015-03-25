@@ -59,14 +59,22 @@ class GameState(object):
 
     def submit_play(self):
         """ Submit a play """
-        self.scores[self.player] = (self.scores[self.player] +
-                                    sumoku.game.score_play(self.pending_tiles,
-                                                           self.played_tiles,
-                                                           self.key_number))
-        self.player = (self.player + 1) % self.players
+        score, complete_line = sumoku.game.score_play(self.pending_tiles,
+                                                      self.played_tiles,
+                                                      self.key_number)
+        self.scores[self.player] = self.scores[self.player] + score
         self.played_tiles.extend(self.pending_tiles)
         self.pending_tiles = []
-        self.draw_tiles()
+        if not complete_line or len(self.cur_hand()) == 0:
+            self.player = (self.player + 1) % self.players
+            self.draw_tiles()
+
+    def game_complete(self):
+        """ Return True if the game is complete """
+        for hand in self.hands:
+            if len(hand) != 0:
+                return False
+        return True
 
     def print_game(self):
         """ Print the game state """

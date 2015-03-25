@@ -74,3 +74,36 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(state.played_tiles[0], (3, 0, 0, 0))
         self.assertEqual(len(state.pending_tiles), 0)
         self.assertEqual(len(state.hands[0]), 8)
+
+        # We complete a line but don't have any tiles left
+        state = gamestate.GameState(2, 8, 3)
+        state.hands[0] = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]
+        state.place_tile(0, 0, 0)
+        state.place_tile(0, 0, 1)
+        state.place_tile(0, 0, 2)
+        state.place_tile(0, 0, 3)
+        state.place_tile(0, 0, 4)
+        state.place_tile(0, 0, 5)
+        state.submit_play()
+        self.assertEqual(state.scores[0], 6)
+        self.assertEqual(state.player, 1)
+        self.assertEqual(len(state.played_tiles), 6)
+        self.assertEqual(len(state.pending_tiles), 0)
+        self.assertEqual(len(state.hands[0]), 8)
+
+        # We complete a line and have tiles left
+        state = gamestate.GameState(2, 8, 3)
+        state.hands[0] = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
+                          (2, 0)]
+        state.place_tile(0, 0, 0)
+        state.place_tile(0, 0, 1)
+        state.place_tile(0, 0, 2)
+        state.place_tile(0, 0, 3)
+        state.place_tile(0, 0, 4)
+        state.place_tile(0, 0, 5)
+        state.submit_play()
+        self.assertEqual(state.scores[0], 6)
+        self.assertEqual(state.player, 0)
+        self.assertEqual(len(state.played_tiles), 6)
+        self.assertEqual(len(state.pending_tiles), 0)
+        self.assertEqual(len(state.hands[0]), 1)
