@@ -117,13 +117,16 @@ def play_sumoku():
                                        args.key_number)
 
     state.print_game()
-    while True:
+    while not state.game_complete():
         try:
             handle_command(state)
             state.print_game()
         except IllegalCommandException, err:
             print 'Error: {}'.format(err.message)
 
+    print 'Final Scores:'
+    for player in xrange(state.players):
+        print 'P{} {:05}'.format(player + 1, state.scores[player])
 
 if __name__ == "__main__":
     play_sumoku()
